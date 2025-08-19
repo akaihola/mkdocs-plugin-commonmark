@@ -4,5 +4,4 @@ mistletoe==0.7.2
 setuptools==46.4.0
 
 # transitive dependencies, newest working versions
-jinja2==2.11.3
-markupsafe==2.0.1
+jinja2==3.0.3
