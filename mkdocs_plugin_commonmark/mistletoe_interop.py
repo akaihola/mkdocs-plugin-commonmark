@@ -155,9 +155,12 @@ class ETreeRenderer(BaseRenderer):
         html._charref = self._stdlib_charref
 
     def render_to_plain(self, token):
-        if hasattr(token, 'children'):
+        if token.children:
             inner = [self.render_to_plain(child) for child in token.children]
             return ''.join(inner)
+        if isinstance(token, span_token.Image):
+            # TODO: it doesn't seem to matter what is returned from this method anyway!
+            return ""
         return self.escape_html(token.content)
 
     def render_inner(self, token):
