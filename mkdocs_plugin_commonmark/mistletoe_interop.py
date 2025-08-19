@@ -9,6 +9,7 @@ import sys
 from contextlib import contextmanager
 from itertools import chain
 from urllib.parse import quote
+from xml.etree import ElementTree as ET
 from mistletoe.block_token import HTMLBlock
 from mistletoe.span_token import HTMLSpan
 from mistletoe.base_renderer import BaseRenderer
@@ -19,7 +20,7 @@ else:
 
 import markdown
 from markdown import util
-from markdown.util import etree, text_type, AtomicString
+from markdown.util import AtomicString
 
 from mistletoe import (Document, block_tokenizer, block_token, span_token, token)
 from mistletoe.block_token import _token_types as _block_token_types
@@ -51,7 +52,7 @@ def unsafe_wrap(text):
     '''
     # Note that "True" is not serializable by most serializers,
     # to guard against that the element itself is never rendered.
-    el = etree.Element('', unsafe=True)
+    el = ET.Element('', unsafe=True)
     el.text = text
     return el
 
@@ -67,7 +68,7 @@ def safe_concat(a, b):
 
 def splice(x):
     # unfortunately, str is iterable
-    if (isinstance(x, text_type) or
+    if (isinstance(x, str) or
         # fortunately, Element is iterable but has no __iter__
         not hasattr(x, '__iter__')):
         yield x
@@ -213,7 +214,7 @@ class ETreeRenderer(BaseRenderer):
         buf = ''
 
         for t in splice(inner):
-            if isinstance(t, util.text_type):
+            if isinstance(t, str):
                 buf += t
             else:
                 # must be an etree.Element
@@ -235,41 +236,41 @@ class ETreeRenderer(BaseRenderer):
         return el
 
     def render_strong(self, token):
-        el = etree.Element('strong')
+        el = ET.Element('strong')
         return self.append_elems(el, self.render_inner(token))
 
     def render_emphasis(self, token):
-        el = etree.Element('em')
+        el = ET.Element('em')
         return self.append_elems(el, self.render_inner(token))
 
     def render_inline_code(self, token):
-        el = etree.Element('code')
+        el = ET.Element('code')
         el.text = AtomicString(html.escape(token.children[0].content)
             .replace('&#x27;', "'"))
         return el
 
     def render_strikethrough(self, token):
-        el = etree.Element('del')
+        el = ET.Element('del')
         return self.append_elems(el, self.render_inner(token))
 
     def render_image(self, token):
         # note that the attributes are sorted before output HTML,
         # NOT by the order specified. annoying when taking diffs,
         # requiring a customized HTML serializer
-        el = etree.Element('img', src=token.src, alt=self.render_to_plain(token))
+        el = ET.Element('img', src=token.src, alt=self.render_to_plain(token))
         if token.title:
             el.set('title', self.escape_html(token.title))
         return el
 
     def render_link(self, token):
-        el = etree.Element('a', href=self.escape_url(token.target))
+        el = ET.Element('a', href=self.escape_url(token.target))
         if token.title:
             el.set('title', self.escape_html(token.title))
         self.append_elems(el, self.render_inner(token))
         return el
 
     def render_auto_link(self, token):
-        el = etree.Element('a')
+        el = ET.Element('a')
         if token.mailto:
             target = 'mailto:{}'.format(token.target)
         else:
@@ -284,12 +285,12 @@ class ETreeRenderer(BaseRenderer):
         return AtomicString(self.escape_html(token.content))
 
     def render_heading(self, token):
-        el = etree.Element('h{}'.format(token.level))
+        el = ET.Element('h{}'.format(token.level))
         self.append_elems(el, self.render_inner(token))
         return el
 
     def render_quote(self, token):
-        el = etree.Element('blockquote')
+        el = ET.Element('blockquote')
         el.text = '\n'
         self._suppress_ptag_stack.append(False)
         self.append_elems(el, self.render_inner_join(token))
@@ -309,12 +310,12 @@ class ETreeRenderer(BaseRenderer):
             # take place.
             return self.render_inner(token)
         else:
-            el = etree.Element('p')
+            el = ET.Element('p')
             return self.append_elems(el, self.render_inner(token))
 
     def render_block_code(self, token):
-        el_pre = etree.Element('pre')
-        el_code = etree.SubElement(el_pre, 'code')
+        el_pre = ET.Element('pre')
+        el_code = ET.SubElement(el_pre, 'code')
         if token.language:
             el_code.set('class', 'language-{}'.format(self.escape_html(token.language)))
         # to comply with the format using in PythonMarkdown.
@@ -329,11 +330,11 @@ class ETreeRenderer(BaseRenderer):
 
     def render_list(self, token):
         if token.start is not None:
-            el = etree.Element('ol')
+            el = ET.Element('ol')
             if token.start != 1:
                 el.set('start', str(token.start))
         else:
-            el = etree.Element('ul')
+            el = ET.Element('ul')
 
         el.text = '\n'
 
@@ -345,7 +346,7 @@ class ETreeRenderer(BaseRenderer):
         return el
 
     def render_list_item(self, token):
-        el = etree.Element('li')
+        el = ET.Element('li')
         if not token.children:
             return el
 
@@ -370,16 +371,16 @@ class ETreeRenderer(BaseRenderer):
         #
         # The primary difficulty seems to be passing down alignment options to
         # reach individual cells.
-        el = etree.Element('table')
+        el = ET.Element('table')
         el.text = '\n'
         if hasattr(token, 'header'):
-            thead = etree.SubElement(el, 'thead')
+            thead = ET.SubElement(el, 'thead')
             thead.text = '\n'
             thead.tail = '\n'
             row = self.render_table_row(token.header, is_header=True)
             thead.append(row)
 
-        tbody = etree.SubElement(el, 'tbody')
+        tbody = ET.SubElement(el, 'tbody')
         tbody.text = '\n'
         tbody.tail = '\n'
         self.append_elems(tbody, self.render_inner(token))
@@ -387,7 +388,7 @@ class ETreeRenderer(BaseRenderer):
         return el
 
     def render_table_row(self, token, is_header=False):
-        el = etree.Element('tr')
+        el = ET.Element('tr')
         el.text = '\n'
         el.tail = '\n'
         inner = [self.render_table_cell(child, is_header)
@@ -395,7 +396,7 @@ class ETreeRenderer(BaseRenderer):
         return self.append_elems(el, inner)
 
     def render_table_cell(self, token, in_header=False):
-        el = etree.Element('th' if in_header else 'td')
+        el = ET.Element('th' if in_header else 'td')
         el.tail = '\n'
 
         if token.align is None:
@@ -410,21 +411,21 @@ class ETreeRenderer(BaseRenderer):
     def render_document(self, token):
         self.footnotes.update(token.footnotes)
         # python-markdown recognizes and strips *this* hardcoded <div>
-        el = etree.Element(getattr(token, 'root_tag', 'div'))
+        el = ET.Element(getattr(token, 'root_tag', 'div'))
         self.append_elems(el, self.render_inner_join(token))
         self.append_newline_inside(el)
-        elt = etree.ElementTree(el)
+        elt = ET.ElementTree(el)
         return elt
 
     @staticmethod
     def render_thematic_break(token):
-        return etree.Element('hr')
+        return ET.Element('hr')
 
     @staticmethod
     def render_line_break(token):
         if token.soft:
             return AtomicString('\n')
-        el = etree.Element('br')
+        el = ET.Element('br')
         el.tail = '\n'
         return el
 
@@ -586,7 +587,7 @@ class MarkdownInterop(markdown.Markdown):
             return ''  # a blank unicode string
 
         try:
-            source = util.text_type(source)
+            source = str(source)
         except UnicodeDecodeError as e:  # pragma: no cover
             # Customise error message while maintaining original trackback
             e.reason += '. -- Note: Markdown only accepts unicode input!'
