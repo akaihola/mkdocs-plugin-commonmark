@@ -18,7 +18,8 @@ setuptools.setup(
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/soxhub/mkdocs-plugin-commonmark",
-    python_requires=">=3.4,<3.10",
+    # Markdown<3.3 is incompatible with Python>=3.12
+    python_requires=">=3.4,<3.12",
     include_package_data=True,
     install_requires=open("requirements.txt", "r").readlines(),
     classifiers=[
@@ -29,5 +30,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ]
 )
