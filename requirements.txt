@@ -2,6 +2,3 @@ mkdocs<1.5
 Markdown>=3.2.1
 mistletoe>=1.4
 setuptools
-
-# transitive dependencies, newest working versions
-jinja2==3.0.3
