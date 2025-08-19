@@ -21,7 +21,7 @@ import markdown
 from markdown import util
 from markdown.util import etree, text_type, AtomicString
 
-from mistletoe import (Document, block_tokenizer, block_token, span_token)
+from mistletoe import (Document, block_tokenizer, block_token, span_token, token)
 from mistletoe.block_token import _token_types as _block_token_types
 from . import serializers
 
@@ -102,6 +102,7 @@ class DocumentLazy(Document):
 
             block_token._root_node = self
             span_token._root_node = self
+            token._root_node = self
             yield self
         finally:
             block_token._root_node = None
